@@ -1,4 +1,4 @@
-# CREATE-BACKEND-TEMPLATE
+# Event Ticket Booking System (TypeScript)
 
 This projects is an opinionanted way to bootstrap express API projects. It creates the project
 structure, sets up typescript, installs common (essential) dependencies, sets up linting and
@@ -120,5 +120,11 @@ The following dependencies are installed along with the project.
 
 ## Contributing
 Feel free to fork, open PRs and report issues. Any kind of feedback is appreciated.
-# backend-template
+
+## API Endpoints
+- **POST /initialize**: Initialize an event with tickets.
+- **POST /book**: Book a ticket or join the waiting list.
+- **POST /cancel**: Cancel a booking and assign tickets to waiting list.
+- **GET /status/:eventId**: Get the current status of an event.
+
 # event-ticket-booking
