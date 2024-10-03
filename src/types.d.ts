@@ -24,7 +24,7 @@ interface Events {
 }
 
 // Booking interface representing the structure of a booking object
-interface Booking {
+interface Bookings {
   id?: string; // Booking ID, optional
   userId: string; // ID of the user who made the booking
   eventId: string; // ID of the event being booked

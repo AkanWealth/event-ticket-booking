@@ -2,29 +2,23 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../../../database/models';
 import { addToWaitingList, getNextFromWaitingList } from '../services/waitingListService';
+import { success } from '../../common/utils';
+
 const { event: Event, booking: Booking } = db;
 
-// Create a new event
 export const createEvent = async (req: Request, res: Response): Promise<Response> => {
   const { totalTickets } = req.body;
 
   try {
-    // Generate a unique eventId
     const eventId = uuidv4();
 
-    const event = await Event.create({
-      id: eventId,                // Setting the generated eventId
+    const newEvent = await Event.create({
+      id: eventId,
       totalTickets,
       availableTickets: totalTickets,
     });
 
-    // Return the eventId along with the event details
-    return res.status(201).json({
-      message: "Event created successfully",
-      eventId: event.id,          // Returning the eventId
-      totalTickets: event.totalTickets,
-      availableTickets: event.availableTickets,
-    });
+    return res.status(201).json(success("Event created successfully", newEvent));
   } catch (error) {
     console.error("Error creating event:", error);
     return res.status(500).json({ message: "Failed to create event", error });
@@ -66,20 +60,26 @@ export const createEvent = async (req: Request, res: Response): Promise<Response
  */
 export const bookTicket = async (req: Request, res: Response): Promise<Response> => {
   const { eventId, userId } = req.body;
-  const selectedEvent = await Event.findByPk(eventId);
 
-  if (!selectedEvent) {
-    return res.status(404).json({ message: 'Event not found' });
-  }
+  try {
+    const event = await Event.findByPk(eventId);
+    
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
 
-  if (selectedEvent.availableTickets > 0) {
-    await Booking.create({ eventId, userId, status: 'CONFIRMED' });
-    selectedEvent.availableTickets--;
-    await selectedEvent.save();
-    return res.status(200).json({ message: 'Ticket booked' });
-  } else {
-    addToWaitingList(eventId, userId);
-    return res.status(200).json({ message: 'Added to waiting list' });
+    if ((event as any).availableTickets > 0) {
+      await Booking.create({ eventId, userId, status: 'CONFIRMED' });
+      (event as any).availableTickets--;
+      await event.save();
+      return res.status(200).json(success('Ticket booked successfully', { eventId, userId }));
+    } else {
+      await addToWaitingList(eventId, userId);
+      return res.status(200).json(success('Added to waiting list', { eventId, userId }));
+    }
+  } catch (error) {
+    console.error("Error booking ticket:", error);
+    return res.status(500).json({ message: "Failed to book ticket", error });
   }
 };
 
@@ -114,32 +114,36 @@ export const bookTicket = async (req: Request, res: Response): Promise<Response>
  */
 export const cancelBooking = async (req: Request, res: Response): Promise<Response> => {
   const { bookingId } = req.body;
-  const booking = await Booking.findByPk(bookingId);
 
-  if (!booking) {
-    return res.status(404).json({ message: 'Booking not found' });
-  }
+  try {
+    const booking = await Booking.findByPk(bookingId);
 
-  await booking.destroy();
-  const selectedEvent = await Event.findByPk(booking.eventId);
-
-  if (selectedEvent) {
-    const eventId = selectedEvent.id; // Store the eventId in a variable
-    const nextUserId = getNextFromWaitingList(eventId);
-
-    // Ensure nextUserId is a string before using it
-    if (nextUserId && typeof nextUserId === 'number') {
-      await Booking.create({ eventId: eventId, userId: nextUserId.toString(), status: 'CONFIRMED' });
-    } else {
-      selectedEvent.availableTickets++;
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
     }
 
-    await selectedEvent.save();
+    const event = await Event.findByPk((booking as any).eventId);
+
+    await booking.destroy();
+
+    if (event) {
+      const nextUserId = getNextFromWaitingList( (event as any).id);
+
+      if (nextUserId && typeof nextUserId === 'number') {
+        await Booking.create({ eventId: (event as any).id, userId: nextUserId.toString(), status: 'CONFIRMED' });
+      } else {
+        (event as any).availableTickets++;
+      }
+
+      await event.save();
+    }
+
+    return res.status(200).json(success('Booking canceled successfully', { bookingId }));
+  } catch (error) {
+    console.error("Error canceling booking:", error);
+    return res.status(500).json({ message: "Failed to cancel booking", error });
   }
-
-  return res.status(200).json({ message: 'Booking canceled' });
 };
-
 
 /**
  * @swagger
@@ -181,27 +185,23 @@ export const cancelBooking = async (req: Request, res: Response): Promise<Respon
  *                         format: date-time
  *                         description: The last update date and time of the booking
  */
-export const getAllBookings = async (req, res) => {
+export const getAllBookings = async (_req: Request, res: Response): Promise<Response> => {
   try {
-    const bookings = await db.Booking.findAll({
+    const bookings = await Booking.findAll({
       include: [
         {
-          model: db.Event, // Ensure this is defined in your models
-          attributes: ['id', 'totalTickets', 'availableTickets'], // Attributes to return
+          model: Event,
+          attributes: ['id', 'totalTickets', 'availableTickets'],
         },
-        // {
-        //   model: db.User, // Ensure this is defined in your models
-        //   attributes: ['id', 'name'], // Attributes to return
-        // },
       ],
     });
 
-    return res.status(200).json({ bookings });
+    return res.status(200).json(success('Bookings retrieved successfully', bookings));
   } catch (error) {
     console.error('Error retrieving bookings:', error);
     return res.status(500).json({
       message: 'Failed to retrieve bookings',
-      error: error.message,
+      error: error.message || 'An unexpected error occurred',
     });
   }
 };
