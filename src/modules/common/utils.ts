@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import Sequelize from 'sequelize';
 import { captureException } from '@sentry/node';
 import { NextFunction, Response } from 'express';
-import { validationResult } from 'express-validator';
+import { ValidationError, validationResult } from 'express-validator';
 
 import { AppError, CreateErr, User, AuthenticatedRequest } from '../../types';
 
@@ -94,8 +94,12 @@ export const validate = (req: AuthenticatedRequest, _res: Response, next: NextFu
       return next();
     }
 
-    const extractedErrors = [];
-    errors.array().map((err) => extractedErrors.push({ [err.param]: err.msg }));
+    const extractedErrors: Record<string, string> = {};
+
+    // Use forEach instead of map since we are not returning a new array
+    errors.array().forEach((err: ValidationError) => {
+      extractedErrors[err.param] = err.msg;
+    });
 
     throw createError('Validation failed', 400, extractedErrors);
   } catch (e) {

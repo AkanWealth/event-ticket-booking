@@ -1,30 +1,50 @@
 import { Sequelize } from 'sequelize';
-
 import dbconfig from '../config/config';
 import UserModel from './userSample';
+import EventModel from './event';
+import BookingModel from './booking';
 
+// Get the current environment or default to 'development'
 const { NODE_ENV = 'development' } = process.env;
 
-const config = dbconfig[NODE_ENV];
+// Extract the config based on the current environment
+const config = dbconfig[NODE_ENV] || {};
 
+// Initialize the Sequelize instance
 let sequelize: Sequelize;
 if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+  const envVar = process.env[config.use_env_variable];
+  if (!envVar) {
+    throw new Error(`Environment variable ${config.use_env_variable} not set.`);
+  }
+  sequelize = new Sequelize(envVar, config);
 } else {
   sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
 
-const db = {
+// Interface for DB object to ensure typing support
+interface DB {
+  sequelize: Sequelize;
+  Sequelize: typeof Sequelize;
+  User: ReturnType<typeof UserModel>;
+  Event: ReturnType<typeof EventModel>;
+  Booking: ReturnType<typeof BookingModel>;
+  [key: string]: any; // Allows adding more models dynamically
+}
+
+// Initialize the models
+const db: DB = {
   sequelize,
   Sequelize,
-  // Add models here e.g cards: cards(sequelize)
-  // Doing this manually to enable auto complete when destructuring
-  user: UserModel(sequelize),
+  User: UserModel(sequelize),
+  Event: EventModel(sequelize),
+  Booking: BookingModel(sequelize),
 };
 
-Object.keys(db).forEach((modelName) => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
+// **Setup associations for models**: Ensure that only models are associated
+Object.values(db).forEach((model) => {
+  if (typeof model?.associate === 'function') {
+    model.associate(db); // Call associate method for each model
   }
 });
 

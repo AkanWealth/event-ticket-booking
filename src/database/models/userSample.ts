@@ -7,7 +7,7 @@ interface UserInstance extends Model<User, UserCreationAttributes>, User {}
 
 export default function UserModel(sequelize: Sequelize) {
   const user = sequelize.define<UserInstance>(
-    'users',
+    'User',
     {
       id: {
         unique: true,
@@ -63,6 +63,7 @@ export default function UserModel(sequelize: Sequelize) {
   user.associate = function (models: Models) {
     // associations can be defined here
     // e.g models.user.hasMany(models.accounts);
+      // user.hasMany(models.Booking, { foreignKey: 'userId' });
   };
 
   return user;

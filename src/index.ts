@@ -2,7 +2,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config } from 'dotenv';
 import compression from 'compression';
-// import { Server } from 'socket.io';
 import * as Sentry from '@sentry/node';
 import express, { Request } from 'express';
 import * as Tracing from '@sentry/tracing';

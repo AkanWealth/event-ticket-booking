@@ -3,12 +3,12 @@ const { DB_HOST, DB_NAME, DB_PASS, DB_USER, DB_PORT, TEST_DB_NAME, DB_MIGRATION_
 
 export default {
   development: {
-    host: DB_HOST,
-    port: DB_PORT,
+    host: DB_HOST || 'dpg-cruu3i5ds78s73a4set0-a.oregon-postgres.render.com',
+    port: DB_PORT || 5432,
     logging: false,
-    username: DB_USER,
-    password: DB_PASS,
-    database: DB_NAME,
+    username: DB_USER || 'event_booking_user',
+    password: DB_PASS || 'pWb3KY7gq2GBELjOxTNN8qosNRFpEf7d',
+    database: DB_NAME || 'event_booking',
     dialect: 'postgres',
     dialectOptions: {
       ssl: {
@@ -29,7 +29,7 @@ export default {
     dialect: 'postgres',
     dialectOptions: {
       ssl: {
-        require: true,
+        require: false,
         rejectUnauthorized: false,
       },
     },
